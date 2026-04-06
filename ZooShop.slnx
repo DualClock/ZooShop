@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ZooShop.Application/ZooShop.Application.csproj" />
+  <Project Path="ZooShop.Domain/ZooShop.Domain.csproj" />
+  <Project Path="ZooShop.Infrastructure/ZooShop.Infrastructure.csproj" />
+  <Project Path="ZooShop/ZooShop.csproj" />
+</Solution>
