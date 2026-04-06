@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir *)",
+      "Bash(dotnet *)",
+      "Bash(type *)",
+      "Bash(del *)",
+      "Bash(taskkill *)",
+      "Bash(git init)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  },
+  "$version": 3
+}

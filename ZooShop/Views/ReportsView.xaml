@@ -1,0 +1,75 @@
+<UserControl x:Class="ZooShop.Views.ReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Padding="0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Text="Отчёты" Style="{StaticResource PageTitle}"/>
+
+            <GroupBox Header="Период">
+                <StackPanel>
+                    <WrapPanel Margin="0,0,0,12">
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="Начало" Style="{StaticResource Subtitle}"/>
+                            <DatePicker SelectedDate="{Binding StartDate}" MinWidth="160"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="Конец" Style="{StaticResource Subtitle}"/>
+                            <DatePicker SelectedDate="{Binding EndDate}" MinWidth="160"/>
+                        </StackPanel>
+                        <StackPanel VerticalAlignment="Bottom">
+                            <TextBlock Text=" " Style="{StaticResource Subtitle}"/>
+                            <Button Content="Сформировать" Command="{Binding GenerateReportsCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Padding="18,8"/>
+                        </StackPanel>
+                    </WrapPanel>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Экспорт CSV" Command="{Binding ExportCsvCommand}"
+                                Padding="16,8" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource StatusText}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Продажи -->
+            <TextBlock Text="Продажи" Style="{StaticResource Subtitle}" Margin="0,0,0,8"/>
+            <DataGrid ItemsSource="{Binding SalesReport}" AutoGenerateColumns="False"
+                      IsReadOnly="True" MaxHeight="200" Margin="0,0,0,20">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Дата" Binding="{Binding SaleDate, StringFormat={}{0:dd.MM.yyyy HH:mm}}" Width="140"/>
+                    <DataGridTextColumn Header="Чек" Binding="{Binding ReceiptNumber}" Width="120"/>
+                    <DataGridTextColumn Header="Клиент" Binding="{Binding Client}" Width="*"/>
+                    <DataGridTextColumn Header="Сотрудник" Binding="{Binding Employee}" Width="120"/>
+                    <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, StringFormat={}{0:N2} ₽}" Width="100"/>
+                    <DataGridTextColumn Header="Оплата" Binding="{Binding PaymentMethod}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Товары -->
+            <TextBlock Text="Товары" Style="{StaticResource Subtitle}" Margin="0,0,0,8"/>
+            <DataGrid ItemsSource="{Binding ProductsReport}" AutoGenerateColumns="False"
+                      IsReadOnly="True" MaxHeight="200" Margin="0,0,0,20">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Название" Binding="{Binding ProductName}" Width="*"/>
+                    <DataGridTextColumn Header="Артикул" Binding="{Binding SKU}" Width="120"/>
+                    <DataGridTextColumn Header="Кол-во" Binding="{Binding TotalQuantity}" Width="90"/>
+                    <DataGridTextColumn Header="Выручка" Binding="{Binding TotalRevenue, StringFormat={}{0:N2} ₽}" Width="120"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Сотрудники -->
+            <TextBlock Text="Сотрудники" Style="{StaticResource Subtitle}" Margin="0,0,0,8"/>
+            <DataGrid ItemsSource="{Binding EmployeesReport}" AutoGenerateColumns="False"
+                      IsReadOnly="True" MaxHeight="200">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Сотрудник" Binding="{Binding EmployeeName}" Width="*"/>
+                    <DataGridTextColumn Header="Продаж" Binding="{Binding TotalSales}" Width="100"/>
+                    <DataGridTextColumn Header="Выручка" Binding="{Binding TotalRevenue, StringFormat={}{0:N2} ₽}" Width="120"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

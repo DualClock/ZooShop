@@ -1,0 +1,65 @@
+<UserControl x:Class="ZooShop.Views.SupportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Padding="0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Text="Поддержка" Style="{StaticResource PageTitle}"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Форма обратной связи -->
+                <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                    <GroupBox Header="Обратная связь">
+                        <StackPanel>
+                            <TextBlock Text="Имя" Style="{StaticResource Subtitle}"/>
+                            <TextBox Text="{Binding SenderName, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Email" Style="{StaticResource Subtitle}"/>
+                            <TextBox Text="{Binding SenderEmail, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Тема" Style="{StaticResource Subtitle}"/>
+                            <TextBox Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Сообщение" Style="{StaticResource Subtitle}"/>
+                            <TextBox Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,16" TextWrapping="Wrap" MinHeight="100"/>
+
+                            <Button Content="Отправить" Command="{Binding SubmitCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Padding="20,9" FontSize="14"/>
+
+                            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource StatusText}"
+                                       Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+
+                <!-- FAQ -->
+                <StackPanel Grid.Column="1" Margin="16,0,0,0">
+                    <GroupBox Header="Частые вопросы">
+                        <ItemsControl ItemsSource="{Binding FAQ}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#E8E8E8" BorderThickness="1"
+                                            CornerRadius="6" Padding="14,12" Margin="0,0,0,10"
+                                            Background="#FAFAFA">
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap"
+                                                   FontSize="13" Foreground="#333" LineHeight="20"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </GroupBox>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

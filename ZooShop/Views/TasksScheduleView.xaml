@@ -1,0 +1,92 @@
+<UserControl x:Class="ZooShop.Views.TasksScheduleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Padding="0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Text="Задачи и расписание" Style="{StaticResource PageTitle}"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Задачи -->
+                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                    <GroupBox Header="Задачи">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <Button Content="Выполнить" Command="{Binding CompleteTaskCommand}"
+                                        Padding="14,7" Margin="0,0,8,0"/>
+                                <Button Content="Удалить" Command="{Binding DeleteTaskCommand}"
+                                        Padding="12,7" BorderBrush="#D13438" Foreground="#D13438"/>
+                            </StackPanel>
+
+                            <DataGrid ItemsSource="{Binding Tasks}" SelectedItem="{Binding SelectedTask}"
+                                      AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="200"
+                                      Margin="0,0,0,16">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Задача" Binding="{Binding TaskTitle}" Width="*"/>
+                                    <DataGridTextColumn Header="Приоритет" Binding="{Binding Priority}" Width="90"/>
+                                    <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="100"/>
+                                    <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat={}{0:dd.MM}}" Width="90"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <TextBlock Text="Создать задачу" FontWeight="SemiBold" FontSize="14"
+                                       Foreground="#333" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Название" Style="{StaticResource Subtitle}"/>
+                            <TextBox Text="{Binding TaskTitle, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,8"/>
+
+                            <TextBlock Text="Описание" Style="{StaticResource Subtitle}"/>
+                            <TextBox Text="{Binding TaskDescription, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,8" TextWrapping="Wrap" MinHeight="50"/>
+
+                            <TextBlock Text="Ответственный" Style="{StaticResource Subtitle}"/>
+                            <ComboBox ItemsSource="{Binding Employees}" DisplayMemberPath="LastName"
+                                      SelectedValuePath="EmployeeID" SelectedValue="{Binding AssignedToId}"
+                                      Margin="0,0,0,8"/>
+
+                            <TextBlock Text="Приоритет" Style="{StaticResource Subtitle}"/>
+                            <ComboBox Text="{Binding TaskPriority, UpdateSourceTrigger=PropertyChanged}"
+                                      Margin="0,0,0,12" IsEditable="True">
+                                <ComboBoxItem Content="Низкий"/>
+                                <ComboBoxItem Content="Средний"/>
+                                <ComboBoxItem Content="Высокий"/>
+                            </ComboBox>
+
+                            <Button Content="Создать" Command="{Binding CreateTaskCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Padding="20,9" FontSize="14"/>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+
+                <!-- Расписание -->
+                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                    <GroupBox Header="Расписание смен">
+                        <StackPanel>
+                            <TextBlock Text="Дата" Style="{StaticResource Subtitle}"/>
+                            <DatePicker SelectedDate="{Binding SelectedDate, UpdateSourceTrigger=PropertyChanged}"
+                                        Margin="0,0,0,12"/>
+
+                            <DataGrid ItemsSource="{Binding Schedules}"
+                                      AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="400">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Сотрудник" Binding="{Binding Employee.LastName}" Width="*"/>
+                                    <DataGridTextColumn Header="Начало" Binding="{Binding ShiftStart, StringFormat={}{0:hh\\:mm}}" Width="90"/>
+                                    <DataGridTextColumn Header="Конец" Binding="{Binding ShiftEnd, StringFormat={}{0:hh\\:mm}}" Width="90"/>
+                                    <DataGridTextColumn Header="Тип" Binding="{Binding ShiftType}" Width="100"/>
+                                    <DataGridTextColumn Header="Отработан" Binding="{Binding IsWorked}" Width="100"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

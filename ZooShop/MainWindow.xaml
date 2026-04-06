@@ -1,0 +1,101 @@
+﻿<Window x:Class="ZooShop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ZooShop.ViewModels"
+        xmlns:view="clr-namespace:ZooShop.Views"
+        Title="{Binding CurrentTitle}" Height="700" Width="1200"
+        WindowStartupLocation="CenterScreen"
+        Background="#F3F3F3">
+    <Window.Resources>
+        <!-- Навигация: Fluent style -->
+        <Style x:Key="NavButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#D4D4D4"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="Margin" Value="8,1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#14FFFFFF"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- DataTemplate: ViewModel → View -->
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+            <view:DashboardView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CatalogViewModel}">
+            <view:CatalogView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SalesViewModel}">
+            <view:SalesView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:InventoryViewModel}">
+            <view:InventoryView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:EmployeesViewModel}">
+            <view:EmployeesView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ClientsPetsViewModel}">
+            <view:ClientsPetsView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:TasksScheduleViewModel}">
+            <view:TasksScheduleView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ReportsViewModel}">
+            <view:ReportsView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SupportViewModel}">
+            <view:SupportView/>
+        </DataTemplate>
+    </Window.Resources>
+    <DockPanel>
+        <!-- Боковая панель навигации -->
+        <Border DockPanel.Dock="Left" Width="240" Background="#1E1E2D">
+            <DockPanel Margin="0,24,0,0">
+                <Border DockPanel.Dock="Top" Padding="20,0,20,24">
+                    <StackPanel>
+                        <TextBlock Text="ZooShop" FontSize="20" FontWeight="SemiBold"
+                                   Foreground="White"/>
+                        <TextBlock Text="Управление зоомагазином" FontSize="11"
+                                   Foreground="#7A7A9E" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border DockPanel.Dock="Top" Height="1" Background="#2D2D44" Margin="16,0,16,12"/>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8,0">
+                    <ItemsControl ItemsSource="{Binding NavigationItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding}"
+                                        Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource NavButtonStyle}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- Основная область контента -->
+        <ContentControl Content="{Binding CurrentView}"
+                        Margin="24"/>
+    </DockPanel>
+</Window>
