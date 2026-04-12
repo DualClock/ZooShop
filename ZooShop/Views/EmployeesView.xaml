@@ -20,6 +20,8 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                 <Button Content="Обновить" Command="{Binding LoadEmployeesCommand}"
                                         Padding="14,7" Margin="0,0,12,0"/>
+                                <CheckBox Content="Показать неактивных" IsChecked="{Binding ShowInactive}"
+                                          VerticalAlignment="Center" Margin="0,0,12,0"/>
                                 <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource StatusText}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Input;
 using ZooShop.ViewModels;
 using ZooShop.Views;
@@ -9,6 +10,8 @@ public class MainViewModel : ViewModelBase
 {
     private ViewModelBase? _currentView;
     private string _currentTitle = "ZooShop — Панель управления";
+    private string _userName = "";
+    private string _userRole = "";
 
     public ViewModelBase? CurrentView
     {
@@ -22,20 +25,22 @@ public class MainViewModel : ViewModelBase
         set => SetField(ref _currentTitle, value);
     }
 
-    public ObservableCollection<string> NavigationItems { get; } = new()
+    public string UserName
     {
-        "Панель управления",
-        "Каталог",
-        "Продажи",
-        "Склад",
-        "Сотрудники",
-        "Клиенты и питомцы",
-        "Задачи и расписание",
-        "Отчёты",
-        "Поддержка"
-    };
+        get => _userName;
+        set => SetField(ref _userName, value);
+    }
+
+    public string UserRole
+    {
+        get => _userRole;
+        set => SetField(ref _userRole, value);
+    }
+
+    public ObservableCollection<string> NavigationItems { get; } = new();
 
     public ICommand NavigateCommand { get; }
+    public ICommand LogoutCommand { get; }
 
     // Общий словарь для обмена данными между ViewModel
     public Dictionary<string, object> SharedData { get; } = new();
@@ -53,6 +58,22 @@ public class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
+        // Инициализация сессии
+        UserName = SessionService.DisplayName;
+        UserRole = SessionService.RoleName;
+
+        // Формируем навигацию: "Сотрудники" только для Админа
+        NavigationItems.Add("Панель управления");
+        NavigationItems.Add("Каталог");
+        NavigationItems.Add("Продажи");
+        NavigationItems.Add("Склад");
+        if (SessionService.IsAdmin)
+            NavigationItems.Add("Сотрудники");
+        NavigationItems.Add("Клиенты и питомцы");
+        NavigationItems.Add("Задачи и расписание");
+        NavigationItems.Add("Отчёты");
+        NavigationItems.Add("Поддержка");
+
         DashboardVM = new DashboardViewModel(this);
         CatalogVM = new CatalogViewModel(this);
         SalesVM = new SalesViewModel(this);
@@ -64,7 +85,14 @@ public class MainViewModel : ViewModelBase
         SupportVM = new SupportViewModel();
 
         NavigateCommand = new RelayCommand(param => Navigate(param as string ?? ""));
+        LogoutCommand = new RelayCommand(Logout);
         Navigate("Панель управления");
+    }
+
+    private void Logout()
+    {
+        SessionService.Logout();
+        System.Windows.Application.Current.MainWindow?.Close();
     }
 
     private void Navigate(string screenName)
@@ -91,8 +119,8 @@ public class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"Ошибка навигации: {ex.GetType().Name}: {ex.Message}", "Ошибка",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            MessageBox.Show($"Ошибка навигации: {ex.GetType().Name}: {ex.Message}", "Ошибка",
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

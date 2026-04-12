@@ -5,7 +5,7 @@ namespace ZooShop.Data;
 
 public class ZooShopDbContext : DbContext
 {
-    public const string ConnectionString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=ZooShop;Integrated Security=True;Persist Security Info=False;Pooling=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Application Name=ZooShop;Command Timeout=30";
+    public static string ConnectionString => DbConfig.ConnectionString;
 
     public DbSet<AnimalType> AnimalTypes => Set<AnimalType>();
     public DbSet<Category> Categories => Set<Category>();
@@ -21,6 +21,8 @@ public class ZooShopDbContext : DbContext
     public DbSet<SaleItem> SaleItems => Set<SaleItem>();
     public DbSet<ZooTask> Tasks => Set<ZooTask>();
     public DbSet<Schedule> Schedules => Set<Schedule>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<User> Users => Set<User>();
 
     // Представления
     public DbSet<CurrentStock> CurrentStocks => Set<CurrentStock>();
@@ -68,6 +70,22 @@ public class ZooShopDbContext : DbContext
         modelBuilder.Entity<Schedule>().HasKey(e => e.ScheduleID);
         modelBuilder.Entity<ZooTask>().HasKey(e => e.TaskID);
 
+        // Связи User ↔ UserRole, User ↔ Employee
+        modelBuilder.Entity<UserRole>().HasKey(r => r.RoleID);
+        modelBuilder.Entity<User>().HasKey(u => u.UserID);
+
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Role)
+            .WithMany(r => r.Users)
+            .HasForeignKey(u => u.RoleID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Employee)
+            .WithMany()
+            .HasForeignKey(u => u.EmployeeID)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Seed-данные
         SeedData(modelBuilder);
     }
@@ -110,11 +128,24 @@ public class ZooShopDbContext : DbContext
             new Warehouse { WarehouseID = 2, WarehouseName = "Магазин №1", Address = "ул. Зоологическая, 5", Phone = "+7-495-444-55-66" }
         );
 
+        // === Роли пользователей ===
+        modelBuilder.Entity<UserRole>().HasData(
+            new UserRole { RoleID = 1, RoleName = "Админ", Description = "Администратор системы" },
+            new UserRole { RoleID = 2, RoleName = "Сотрудник", Description = "Рядовой сотрудник" }
+        );
+
+        // === Пользователи (аккаунты для входа) ===
+        modelBuilder.Entity<User>().HasData(
+            new User { UserID = 1, Login = "anna@zooshop.ru", Password = "123", RoleID = 2, EmployeeID = 1, IsActive = true },
+            new User { UserID = 2, Login = "ivan@zooshop.ru", Password = "123", RoleID = 2, EmployeeID = 2, IsActive = true },
+            new User { UserID = 3, Login = "maria@zooshop.ru", Password = "admin", RoleID = 1, EmployeeID = 3, IsActive = true }
+        );
+
         // === Сотрудники ===
         modelBuilder.Entity<Employee>().HasData(
-            new Employee { EmployeeID = 1, FirstName = "Анна", LastName = "Петрова", MiddleName = "Ивановна", Phone = "+7-916-111-22-33", Email = "anna@zooshop.ru", Position = "Продавец", Role = "Сотрудник", PasswordHash = "hash1", IsActive = true },
-            new Employee { EmployeeID = 2, FirstName = "Иван", LastName = "Сидоров", MiddleName = "Петрович", Phone = "+7-916-222-33-44", Email = "ivan@zooshop.ru", Position = "Продавец", Role = "Сотрудник", PasswordHash = "hash2", IsActive = true },
-            new Employee { EmployeeID = 3, FirstName = "Мария", LastName = "Козлова", MiddleName = "Сергеевна", Phone = "+7-916-333-44-55", Email = "maria@zooshop.ru", Position = "Администратор", Role = "Админ", PasswordHash = "hash3", IsActive = true }
+            new Employee { EmployeeID = 1, FirstName = "Анна", LastName = "Петрова", MiddleName = "Ивановна", Phone = "+7-916-111-22-33", Email = "anna@zooshop.ru", Position = "Продавец", Role = "Сотрудник", IsActive = true },
+            new Employee { EmployeeID = 2, FirstName = "Иван", LastName = "Сидоров", MiddleName = "Петрович", Phone = "+7-916-222-33-44", Email = "ivan@zooshop.ru", Position = "Продавец", Role = "Сотрудник", IsActive = true },
+            new Employee { EmployeeID = 3, FirstName = "Мария", LastName = "Козлова", MiddleName = "Сергеевна", Phone = "+7-916-333-44-55", Email = "maria@zooshop.ru", Position = "Администратор", Role = "Админ", IsActive = true }
         );
 
         // === Товары (5 товаров) ===

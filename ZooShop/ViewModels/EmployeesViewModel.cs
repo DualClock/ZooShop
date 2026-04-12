@@ -12,6 +12,7 @@ public class EmployeesViewModel : ViewModelBase
     private readonly MainViewModel _main;
     private Employee? _selectedEmployee;
     private string _statusMessage = "";
+    private bool _showInactive = false;
 
     // Форма создания/редактирования
     private string _formFirstName = "";
@@ -43,6 +44,18 @@ public class EmployeesViewModel : ViewModelBase
     {
         get => _statusMessage;
         set => SetField(ref _statusMessage, value);
+    }
+
+    public bool ShowInactive
+    {
+        get => _showInactive;
+        set
+        {
+            if (SetField(ref _showInactive, value))
+            {
+                _ = LoadEmployeesAsync();
+            }
+        }
     }
 
     // Свойства формы
@@ -126,10 +139,26 @@ public class EmployeesViewModel : ViewModelBase
         try
         {
             await using var db = new ZooShopDbContext();
-            var employees = await db.Employees.OrderBy(e => e.LastName).ToListAsync();
+            
+            // По умолчанию показываем только активных сотрудников
+            var query = db.Employees.AsQueryable();
+            if (!ShowInactive)
+            {
+                query = query.Where(e => e.IsActive);
+            }
+            
+            var employees = await query.OrderBy(e => e.LastName).ToListAsync();
             Employees.Clear();
             foreach (var e in employees) Employees.Add(e);
-            StatusMessage = $"Загружено сотрудников: {employees.Count}";
+            
+            var statusText = $"Загружено сотрудников: {employees.Count}";
+            if (!ShowInactive)
+            {
+                var inactiveCount = await db.Employees.CountAsync(e => !e.IsActive);
+                if (inactiveCount > 0)
+                    statusText += $" (скрыто неактивных: {inactiveCount})";
+            }
+            StatusMessage = statusText;
         }
         catch (Exception ex)
         {
@@ -174,7 +203,7 @@ public class EmployeesViewModel : ViewModelBase
 
             if (IsEditingMode && SelectedEmployee != null)
             {
-                // Обновление существующего
+                // Обновление существующего сотрудника
                 var emp = await db.Employees.FindAsync(SelectedEmployee.EmployeeID);
                 if (emp == null)
                 {
@@ -189,11 +218,20 @@ public class EmployeesViewModel : ViewModelBase
                 emp.Position = FormPosition;
                 emp.Role = FormRole;
                 emp.IsActive = FormIsActive;
+
+                // Если email изменился — обновляем логин в Users
+                if (!string.IsNullOrWhiteSpace(FormEmail))
+                {
+                    var user = await db.Users.FirstOrDefaultAsync(u => u.EmployeeID == emp.EmployeeID);
+                    if (user != null)
+                        user.Login = FormEmail;
+                }
+
                 StatusMessage = $"✅ {FormLastName} {FormFirstName} обновлён";
             }
             else
             {
-                // Создание нового
+                // Создание нового сотрудника + аккаунта
                 var emp = new Employee
                 {
                     FirstName = FormFirstName,
@@ -206,7 +244,29 @@ public class EmployeesViewModel : ViewModelBase
                     IsActive = FormIsActive
                 };
                 db.Employees.Add(emp);
-                StatusMessage = $"✅ {FormLastName} {FormFirstName} добавлен";
+                await db.SaveChangesAsync(); // Получаем EmployeeID
+
+                // Определяем роль
+                var roleName = FormRole == "Админ" ? "Админ" : "Сотрудник";
+                var userRole = await db.UserRoles.FirstOrDefaultAsync(r => r.RoleName == roleName);
+                if (userRole == null)
+                {
+                    StatusMessage = "❌ Роль не найдена";
+                    return;
+                }
+
+                // Создаём аккаунт
+                var user = new User
+                {
+                    Login = string.IsNullOrWhiteSpace(FormEmail) ? $"user{emp.EmployeeID}" : FormEmail,
+                    Password = "123", // Пароль по умолчанию
+                    RoleID = userRole.RoleID,
+                    EmployeeID = emp.EmployeeID,
+                    IsActive = FormIsActive
+                };
+                db.Users.Add(user);
+
+                StatusMessage = $"✅ {FormLastName} {FormFirstName} добавлен (пароль: 123)";
             }
 
             await db.SaveChangesAsync();
@@ -221,11 +281,17 @@ public class EmployeesViewModel : ViewModelBase
 
     private async Task DeleteEmployeeAsync()
     {
-        if (SelectedEmployee == null) return;
+        if (SelectedEmployee == null)
+        {
+            StatusMessage = "❌ Выберите сотрудника из списка";
+            return;
+        }
 
+        var empName = $"{SelectedEmployee.LastName} {SelectedEmployee.FirstName}";
         var result = MessageBox.Show(
-            $"Удалить сотрудника {SelectedEmployee.LastName} {SelectedEmployee.FirstName}?",
-            "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            $"Деактивировать сотрудника {empName}?\n\n" +
+            $"Сотрудник не сможет войти в систему, но останется в базе для отчётности.",
+            "Деактивация сотрудника", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
         if (result != MessageBoxResult.Yes) return;
 
@@ -235,20 +301,33 @@ public class EmployeesViewModel : ViewModelBase
             var emp = await db.Employees.FindAsync(SelectedEmployee.EmployeeID);
             if (emp == null)
             {
-                StatusMessage = "❌ Сотрудник не найден";
+                StatusMessage = "❌ Сотрудник не найден в БД";
                 return;
             }
 
-            // Не удаляем, а деактивируем
+            var oldStatus = emp.IsActive ? "Активен" : "Неактивен";
+            
+            // Деактивируем сотрудника
             emp.IsActive = false;
+
+            // Деактивируем аккаунт
+            var user = await db.Users.FirstOrDefaultAsync(u => u.EmployeeID == emp.EmployeeID);
+            if (user != null)
+            {
+                user.IsActive = false;
+            }
+
             await db.SaveChangesAsync();
-            StatusMessage = $"✅ {emp.LastName} {emp.FirstName} деактивирован";
+            
+            StatusMessage = $"✅ {empName} деактивирован ({oldStatus} → Неактивен)";
+            
+            // Перезагружаем список — деактивированный сотрудник исчезнет
             await LoadEmployeesAsync();
             ClearForm();
         }
         catch (Exception ex)
         {
-            StatusMessage = $"❌ Ошибка удаления: {ex.Message}";
+            StatusMessage = $"❌ Ошибка деактивации: {ex.Message}";
         }
     }
 }

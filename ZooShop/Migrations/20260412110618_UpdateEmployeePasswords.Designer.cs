@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZooShop.Data;
 
@@ -11,9 +12,11 @@ using ZooShop.Data;
 namespace ZooShop.Migrations
 {
     [DbContext(typeof(ZooShopDbContext))]
-    partial class ZooShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260412110618_UpdateEmployeePasswords")]
+    partial class UpdateEmployeePasswords
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -319,6 +322,9 @@ namespace ZooShop.Migrations
                     b.Property<string>("MiddleName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
@@ -342,6 +348,7 @@ namespace ZooShop.Migrations
                             IsActive = true,
                             LastName = "Петрова",
                             MiddleName = "Ивановна",
+                            PasswordHash = "123",
                             Phone = "+7-916-111-22-33",
                             Position = "Продавец",
                             Role = "Сотрудник"
@@ -354,6 +361,7 @@ namespace ZooShop.Migrations
                             IsActive = true,
                             LastName = "Сидоров",
                             MiddleName = "Петрович",
+                            PasswordHash = "123",
                             Phone = "+7-916-222-33-44",
                             Position = "Продавец",
                             Role = "Сотрудник"
@@ -366,6 +374,7 @@ namespace ZooShop.Migrations
                             IsActive = true,
                             LastName = "Козлова",
                             MiddleName = "Сергеевна",
+                            PasswordHash = "admin",
                             Phone = "+7-916-333-44-55",
                             Position = "Администратор",
                             Role = "Админ"
@@ -996,103 +1005,6 @@ namespace ZooShop.Migrations
                     b.ToView("vw_TodaySales", (string)null);
                 });
 
-            modelBuilder.Entity("ZooShop.Models.User", b =>
-                {
-                    b.Property<int>("UserID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserID"));
-
-                    b.Property<int?>("EmployeeID")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Login")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RoleID")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserID");
-
-                    b.HasIndex("EmployeeID");
-
-                    b.HasIndex("RoleID");
-
-                    b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            UserID = 1,
-                            EmployeeID = 1,
-                            IsActive = true,
-                            Login = "anna@zooshop.ru",
-                            Password = "123",
-                            RoleID = 2
-                        },
-                        new
-                        {
-                            UserID = 2,
-                            EmployeeID = 2,
-                            IsActive = true,
-                            Login = "ivan@zooshop.ru",
-                            Password = "123",
-                            RoleID = 2
-                        },
-                        new
-                        {
-                            UserID = 3,
-                            EmployeeID = 3,
-                            IsActive = true,
-                            Login = "maria@zooshop.ru",
-                            Password = "admin",
-                            RoleID = 1
-                        });
-                });
-
-            modelBuilder.Entity("ZooShop.Models.UserRole", b =>
-                {
-                    b.Property<int>("RoleID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleID"));
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RoleName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("RoleID");
-
-                    b.ToTable("UserRoles");
-
-                    b.HasData(
-                        new
-                        {
-                            RoleID = 1,
-                            Description = "Администратор системы",
-                            RoleName = "Админ"
-                        },
-                        new
-                        {
-                            RoleID = 2,
-                            Description = "Рядовой сотрудник",
-                            RoleName = "Сотрудник"
-                        });
-                });
-
             modelBuilder.Entity("ZooShop.Models.Warehouse", b =>
                 {
                     b.Property<int>("WarehouseID")
@@ -1370,24 +1282,6 @@ namespace ZooShop.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("ZooShop.Models.User", b =>
-                {
-                    b.HasOne("ZooShop.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("ZooShop.Models.UserRole", "Role")
-                        .WithMany("Users")
-                        .HasForeignKey("RoleID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("ZooShop.Models.ZooTask", b =>
                 {
                     b.HasOne("ZooShop.Models.Employee", "AssignedEmployee")
@@ -1457,11 +1351,6 @@ namespace ZooShop.Migrations
             modelBuilder.Entity("ZooShop.Models.Sale", b =>
                 {
                     b.Navigation("SaleItems");
-                });
-
-            modelBuilder.Entity("ZooShop.Models.UserRole", b =>
-                {
-                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("ZooShop.Models.Warehouse", b =>

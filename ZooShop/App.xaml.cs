@@ -8,16 +8,32 @@ namespace ZooShop;
 
 public partial class App : Application
 {
+    private static readonly string AppLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app-debug.log");
+
+    private static void LogApp(string message)
+    {
+        try
+        {
+            var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}\n";
+            File.AppendAllText(AppLogPath, line);
+            System.Diagnostics.Debug.WriteLine(line);
+        }
+        catch { }
+    }
     protected override void OnStartup(StartupEventArgs e)
     {
+        LogApp("=== ЗАПУСК ПРИЛОЖЕНИЯ ===");
+        
         // Глобальный перехват всех исключений
         AppDomain.CurrentDomain.UnhandledException += (s, args) =>
         {
+            LogApp($"UnhandledException: {(args.ExceptionObject as Exception)?.Message}");
             LogException(args.ExceptionObject as Exception, "UnhandledException");
         };
 
         DispatcherUnhandledException += (s, args) =>
         {
+            LogApp($"DispatcherUnhandledException: {args.Exception.Message}");
             LogException(args.Exception, "DispatcherUnhandledException");
             args.Handled = true;
             MessageBox.Show(
@@ -28,12 +44,83 @@ public partial class App : Application
         };
 
         base.OnStartup(e);
+        LogApp("Базовый OnStartup вызван");
+
+        // КРИТИЧЕСКИ ВАЖНО: отключаем автоматическое завершение приложения
+        // По умолчанию ShutdownMode=OnLastWindowClose — когда все окна закрыты, WPF завершает приложение.
+        // У нас цикл входа: LoginWindow закрывается -> MainWindow открывается -> LoginWindow уже закрыт -> WPF думает что все окна закрыты -> убивает MainWindow
+        Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        LogApp("ShutdownMode установлен в OnExplicitShutdown");
 
         // Инициализация базы данных
+        LogApp("Начало инициализации БД...");
         InitializeDatabase();
+        LogApp("Инициализация БД завершена");
 
-        // Запуск главного окна
-        new MainWindow().Show();
+        // Цикл входа: показываем LoginWindow, если успешно — MainWindow, и так по кругу
+        LogApp("Начало цикла входа...");
+        int loopCount = 0;
+        while (true)
+        {
+            loopCount++;
+            LogApp($"--- Итерация цикла #{loopCount} ---");
+            
+            var loginWindow = new Views.LoginWindow();
+            LogApp("Показываю LoginWindow.ShowDialog()...");
+            var loginResult = loginWindow.ShowDialog();
+            LogApp($"LoginWindow.ShowDialog() вернул: {loginResult}");
+            LogApp($"SessionService.IsAuthenticated={SessionService.IsAuthenticated}");
+            LogApp($"SessionService.CurrentUser: {SessionService.CurrentUser?.Login ?? "null"}");
+
+            if (loginResult != true)
+            {
+                LogApp("loginResult != true — выход из цикла (пользователь закрыл окно входа)");
+                // Пользователь закрыл окно входа — выходим из приложения
+                break;
+            }
+
+            LogApp("Успешный вход — показываю MainWindow");
+            // Успешный вход — показываем главное окно
+            try
+            {
+                var mainWindow = new MainWindow();
+                // ВАЖНО: назначаем MainWindow как главное окно приложения
+                // иначе WPF закроет приложение, т.к. все окна закрыты (ShutdownMode=OnLastWindowClose)
+                MainWindow = mainWindow;
+                LogApp("MainWindow назначен как Application.MainWindow");
+                LogApp("MainWindow создан, показываю ShowDialog()...");
+                mainWindow.ShowDialog();
+                LogApp("MainWindow.ShowDialog() закрылся");
+                MainWindow = null; // Сбрасываем, чтобы цикл мог продолжиться
+            }
+            catch (Exception mainEx)
+            {
+                LogApp($"КРИТИЧЕСКАЯ ОШИБКА при создании/показе MainWindow: {mainEx.GetType().Name}: {mainEx.Message}");
+                LogApp($"StackTrace: {mainEx.StackTrace}");
+                MessageBox.Show(
+                    $"Ошибка при открытии главного окна:\n{mainEx.GetType().Name}: {mainEx.Message}\n\nПодробности: {mainEx.StackTrace}",
+                    "Критическая ошибка ZooShop",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+
+            LogApp($"После MainWindow: SessionService.IsAuthenticated={SessionService.IsAuthenticated}");
+            
+            // MainWindow закрылся (выход) — цикл повторяется, показываем LoginWindow снова
+            if (!SessionService.IsAuthenticated)
+            {
+                LogApp("Был logout — продолжаю цикл");
+                // Был logout — продолжаем цикл
+                continue;
+            }
+
+            LogApp("MainWindow закрылся по другой причине — выход из цикла");
+            // MainWindow закрылся по другой причине — выходим
+            break;
+        }
+
+        LogApp("Выход из цикла входа, вызываю Shutdown()");
+        Shutdown();
     }
 
     private static void LogException(Exception? ex, string source)
@@ -67,16 +154,111 @@ public partial class App : Application
             System.Diagnostics.Debug.WriteLine($"Ошибка инициализации: {ex.Message}");
             MessageBox.Show(
                 $"Ошибка инициализации базы данных:\n{ex.Message}\n\n" +
-                "Убедитесь, что SQL Server запущен и доступен через (localdb)\\MSSQLLocalDB",
+                $"Убедитесь, что SQL Server запущен ({DbConfig.ServerName})",
                 "ZooShop - Ошибка БД",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
+        }
+
+        // Проверяем и исправляем роли пользователей (отдельный контекст)
+        try
+        {
+            using var checkDb = new ZooShopDbContext();
+            EnsureUsersAndRolesExist(checkDb);
+        }
+        catch (Exception ex)
+        {
+            LogApp($"Ошибка проверки пользователей: {ex.Message}");
+        }
+    }
+
+    private static void EnsureUsersAndRolesExist(ZooShopDbContext db)
+    {
+        try
+        {
+            // 1. Проверяем/создаём роли
+            var adminRole = db.UserRoles.FirstOrDefault(r => r.RoleName == "Админ");
+            if (adminRole == null)
+            {
+                adminRole = new ZooShop.Models.UserRole { RoleName = "Админ", Description = "Администратор системы" };
+                db.UserRoles.Add(adminRole);
+                db.SaveChanges();
+                LogApp("Роль 'Админ' создана");
+            }
+
+            var employeeRole = db.UserRoles.FirstOrDefault(r => r.RoleName == "Сотрудник");
+            if (employeeRole == null)
+            {
+                employeeRole = new ZooShop.Models.UserRole { RoleName = "Сотрудник", Description = "Рядовой сотрудник" };
+                db.UserRoles.Add(employeeRole);
+                db.SaveChanges();
+                LogApp("Роль 'Сотрудник' создана");
+            }
+
+            // 2. Проверяем/создаём пользователей
+            EnsureUserExists(db, "maria@zooshop.ru", "admin", adminRole.RoleID, "Мария", "Админ");
+            EnsureUserExists(db, "anna@zooshop.ru", "123", employeeRole.RoleID, "Анна", "Сотрудник");
+            EnsureUserExists(db, "ivan@zooshop.ru", "123", employeeRole.RoleID, "Иван", "Сотрудник");
+
+            // 3. Логируем всех пользователей
+            var users = db.Users.Include(u => u.Role).ToList();
+            LogApp($"Пользователи в БД: {users.Count}");
+            foreach (var u in users)
+            {
+                LogApp($"  - {u.Login} | Роль: {u.Role?.RoleName ?? "null"} | IsActive: {u.IsActive}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogApp($"Ошибка проверки пользователей: {ex.Message}");
+        }
+    }
+
+    private static void EnsureUserExists(ZooShopDbContext db, string login, string password, int roleId, string firstName, string expectedRole)
+    {
+        var user = db.Users.FirstOrDefault(u => u.Login == login);
+        if (user == null)
+        {
+            // Ищем сотрудника по имени
+            var employee = db.Employees.FirstOrDefault(e => e.FirstName == firstName);
+            
+            user = new ZooShop.Models.User
+            {
+                Login = login,
+                Password = password,
+                RoleID = roleId,
+                EmployeeID = employee?.EmployeeID,
+                IsActive = true
+            };
+            db.Users.Add(user);
+            db.SaveChanges();
+            LogApp($"Пользователь {login} добавлен (Роль: {expectedRole}, IsActive=true)");
+        }
+        else
+        {
+            // Убедимся что роль правильная и пользователь АКТИВЕН
+            bool changed = false;
+            if (user.RoleID != roleId)
+            {
+                user.RoleID = roleId;
+                changed = true;
+            }
+            if (!user.IsActive)
+            {
+                user.IsActive = true;
+                changed = true;
+            }
+            if (changed)
+            {
+                db.SaveChanges();
+                LogApp($"Пользователь {login} обновлён (Роль: {expectedRole}, IsActive=true)");
+            }
         }
     }
 
     private static void EnsureDatabaseExists()
     {
-        var masterConn = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=master;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
+        var masterConn = DbConfig.MasterConnectionString;
         using var conn = new SqlConnection(masterConn);
         conn.Open();
 

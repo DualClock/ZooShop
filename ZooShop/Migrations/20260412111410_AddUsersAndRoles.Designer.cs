@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZooShop.Data;
 
@@ -11,9 +12,11 @@ using ZooShop.Data;
 namespace ZooShop.Migrations
 {
     [DbContext(typeof(ZooShopDbContext))]
-    partial class ZooShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260412111410_AddUsersAndRoles")]
+    partial class AddUsersAndRoles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

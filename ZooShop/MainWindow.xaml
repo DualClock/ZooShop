@@ -7,7 +7,7 @@
         WindowStartupLocation="CenterScreen"
         Background="#F3F3F3">
     <Window.Resources>
-        <!-- Навигация: Fluent style -->
+
         <Style x:Key="NavButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#D4D4D4"/>
@@ -35,7 +35,6 @@
             </Setter>
         </Style>
 
-        <!-- DataTemplate: ViewModel → View -->
         <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
             <view:DashboardView/>
         </DataTemplate>
@@ -63,6 +62,13 @@
         <DataTemplate DataType="{x:Type vm:SupportViewModel}">
             <view:SupportView/>
         </DataTemplate>
+
+        <DataTemplate x:Key="NavItemTemplate">
+            <Button Content="{Binding}"
+                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    CommandParameter="{Binding}"
+                    Style="{StaticResource NavButtonStyle}"/>
+        </DataTemplate>
     </Window.Resources>
     <DockPanel>
         <!-- Боковая панель навигации -->
@@ -77,19 +83,25 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Информация о пользователе -->
+                <Border DockPanel.Dock="Top" Padding="20,12" Margin="0,0,0,8"
+                        Background="#2D2D44" CornerRadius="6" Width="200" HorizontalAlignment="Center">
+                    <StackPanel>
+                        <TextBlock Text="{Binding UserName}" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="White" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding UserRole}" FontSize="10"
+                                   Foreground="#A0A0C0" Margin="0,2,0,8"/>
+                        <Button Content="Выйти" FontSize="11" Padding="8,4"
+                                Background="#E53E3E" Foreground="White" BorderThickness="0"
+                                Cursor="Hand" Command="{Binding LogoutCommand}"/>
+                    </StackPanel>
+                </Border>
+
                 <Border DockPanel.Dock="Top" Height="1" Background="#2D2D44" Margin="16,0,16,12"/>
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8,0">
-                    <ItemsControl ItemsSource="{Binding NavigationItems}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Content="{Binding}"
-                                        Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        Style="{StaticResource NavButtonStyle}"/>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding NavigationItems}"
+                                  ItemTemplate="{StaticResource NavItemTemplate}"/>
                 </ScrollViewer>
             </DockPanel>
         </Border>
